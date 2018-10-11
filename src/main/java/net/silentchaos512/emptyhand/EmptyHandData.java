@@ -26,21 +26,37 @@ import net.minecraft.util.EnumHand;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
+import net.silentchaos512.emptyhand.config.Config;
 import net.silentchaos512.emptyhand.network.MessageSyncItems;
 import net.silentchaos512.emptyhand.network.MessageTutorial;
 import net.silentchaos512.lib.util.PlayerHelper;
 
-public class EmptyHandData {
+import javax.annotation.Nonnull;
+
+public final class EmptyHandData {
     private static final String NBT_DATA = "EmptyHand_Data";
+    private static final String NBT_LOCKED_SLOT = "LockedSlot";
     private static final String NBT_STORED_STACK_PREFIX = "StoredStack";
     private static final String NBT_TUTORIAL_STAGE = "Tutorial";
     private static final int TUTORIAL_STAGES = 2;
+
+    private EmptyHandData() {
+    }
+
+    @Nonnull
+    private static NBTTagCompound getData(EntityPlayer player) {
+        return PlayerHelper.getPersistedDataSubcompound(player, NBT_DATA);
+    }
+
+    public static int getLockedSlot(EntityPlayer player) {
+        return getData(player).getInteger(NBT_LOCKED_SLOT);
+    }
 
     /**
      * Gets the stored item for the given hand, or {@link ItemStack#EMPTY} if nothing is stored.
      */
     public static ItemStack getStoredStack(EntityPlayer player, EnumHand hand) {
-        NBTTagCompound tags = PlayerHelper.getPersistedDataSubcompound(player, NBT_DATA);
+        NBTTagCompound tags = getData(player);
         final String key = getStoredStackKey(hand);
 
         if (tags.hasKey(key)) return new ItemStack(tags.getCompoundTag(key));
@@ -51,11 +67,22 @@ public class EmptyHandData {
         swapForHand(player, EnumHand.MAIN_HAND);
         swapForHand(player, EnumHand.OFF_HAND);
 
+        setLockedSlot(player);
+
         if (player instanceof EntityPlayerMP) {
             EntityPlayerMP playerMP = (EntityPlayerMP) player;
             syncDataWithClient(playerMP);
             incrementTutorialStage(playerMP);
             sendTutorialMessage(playerMP);
+        }
+    }
+
+    private static void setLockedSlot(EntityPlayer player) {
+        if (player.getHeldItem(EnumHand.MAIN_HAND).isEmpty()) {
+            int slot = player.inventory.currentItem;
+            getData(player).setInteger(NBT_LOCKED_SLOT, slot);
+        } else {
+            getData(player).setInteger(NBT_LOCKED_SLOT, -1);
         }
     }
 
@@ -65,7 +92,7 @@ public class EmptyHandData {
      */
     public static void setStoredStacks(EntityPlayer player, ItemStack mainHand, ItemStack offHand) {
         if (player == null) return;
-        NBTTagCompound tags = PlayerHelper.getPersistedDataSubcompound(player, NBT_DATA);
+        NBTTagCompound tags = getData(player);
         tags.setTag(getStoredStackKey(EnumHand.MAIN_HAND), mainHand.writeToNBT(new NBTTagCompound()));
         tags.setTag(getStoredStackKey(EnumHand.OFF_HAND), offHand.writeToNBT(new NBTTagCompound()));
     }
@@ -75,7 +102,7 @@ public class EmptyHandData {
      */
     private static void swapForHand(EntityPlayer player, EnumHand hand) {
         final String key = getStoredStackKey(hand);
-        NBTTagCompound tags = PlayerHelper.getPersistedDataSubcompound(player, NBT_DATA);
+        NBTTagCompound tags = getData(player);
         ItemStack current = player.getHeldItem(hand);
         ItemStack previous = tags.hasKey(key) ? new ItemStack(tags.getCompoundTag(key)) : ItemStack.EMPTY;
 
@@ -92,7 +119,7 @@ public class EmptyHandData {
      * Sends a tutorial message to the player, if appropriate.
      */
     private static void sendTutorialMessage(EntityPlayerMP player) {
-        int completedStage = PlayerHelper.getPersistedDataSubcompound(player, NBT_DATA).getInteger(NBT_TUTORIAL_STAGE);
+        int completedStage = getData(player).getInteger(NBT_TUTORIAL_STAGE);
         if (completedStage >= TUTORIAL_STAGES) return;
         int currentStage = completedStage + 1;
         EmptyHand.network.wrapper.sendTo(new MessageTutorial(currentStage), player);
@@ -102,7 +129,7 @@ public class EmptyHandData {
      * Increment the tutorial stage, which determines which message will be shown, if any.
      */
     private static void incrementTutorialStage(EntityPlayerMP player) {
-        NBTTagCompound tags = PlayerHelper.getPersistedDataSubcompound(player, NBT_DATA);
+        NBTTagCompound tags = getData(player);
         int completedStage = tags.getInteger(NBT_TUTORIAL_STAGE);
         if (completedStage < TUTORIAL_STAGES)
             tags.setInteger(NBT_TUTORIAL_STAGE, completedStage + 1);
