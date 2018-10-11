@@ -40,7 +40,7 @@ public class MessageTutorial extends MessageSL {
 
     @Override
     public IMessage handleMessage(MessageContext context) {
-        ClientTicks.INSTANCE.scheduleAction(() -> {
+        ClientTicks.scheduleAction(() -> {
             EntityPlayer player = EmptyHand.proxy.getClientPlayer();
             String keyName = KeyTracker.instance.getKeybindDisplayName();
             ChatHelper.sendMessage(player, EmptyHand.i18n.miscText("tutorial" + this.index, keyName));

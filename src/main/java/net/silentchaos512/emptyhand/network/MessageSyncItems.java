@@ -44,7 +44,7 @@ public class MessageSyncItems extends MessageSL {
 
     @Override
     public IMessage handleMessage(MessageContext context) {
-        ClientTicks.INSTANCE.scheduleAction(() -> {
+        ClientTicks.scheduleAction(() -> {
             EntityPlayer player = EmptyHand.proxy.getClientPlayer();
             if (player != null)
                 EmptyHandData.setStoredStacks(player, this.mainHand, this.offHand);
