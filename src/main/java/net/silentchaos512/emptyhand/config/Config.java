@@ -27,13 +27,21 @@ import net.silentchaos512.lib.util.LogHelper;
 
 public class Config extends ConfigBaseNew {
     public static final String CAT_HUD = "hud";
+    public static final String CAT_TUTORIAL = "tutorial";
 
     @ConfigOption(name = "OffsetX", category = CAT_HUD)
+    @ConfigOption.RangeInt(124)
     @ConfigOption.Comment("HUD position offset")
-    public static int hudOffsetX = 124;
+    public static int hudOffsetX;
     @ConfigOption(name = "OffsetY", category = CAT_HUD)
+    @ConfigOption.RangeInt(-19)
     @ConfigOption.Comment("HUD position offset")
-    public static int hudOffsetY = -19;
+    public static int hudOffsetY;
+
+    @ConfigOption(name = "Enabled", category = CAT_TUTORIAL)
+    @ConfigOption.BooleanDefault(true)
+    @ConfigOption.Comment("Show the tutorial messages in chat for new worlds until the tutorial is completed.")
+    public static boolean showTutorial;
 
     public static HudAnchor hudAnchor = HudAnchor.BOTTOM_CENTER;
 

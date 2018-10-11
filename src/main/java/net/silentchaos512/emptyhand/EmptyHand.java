@@ -47,8 +47,8 @@ import net.silentchaos512.lib.util.LogHelper;
 public class EmptyHand implements IModBase {
     public static final String MOD_ID = "emptyhand";
     public static final String MOD_NAME = "Empty Hand";
-    public static final String VERSION = "0.1.0";
-    public static final String VERSION_SILENTLIB = "3.0.5";
+    public static final String VERSION = "0.1.2";
+    public static final String VERSION_SILENTLIB = "3.0.6";
     public static final int BUILD_NUM = 0;
     public static final String DEPENDENCIES = "required-after:forge@[14.23.3.2655,);" +
             "required-after:silentlib@[" + VERSION_SILENTLIB + ",);";

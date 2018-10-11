@@ -73,7 +73,9 @@ public final class EmptyHandData {
             EntityPlayerMP playerMP = (EntityPlayerMP) player;
             syncDataWithClient(playerMP);
             incrementTutorialStage(playerMP);
-            sendTutorialMessage(playerMP);
+            if (Config.showTutorial) {
+                sendTutorialMessage(playerMP);
+            }
         }
     }
 
@@ -141,14 +143,18 @@ public final class EmptyHandData {
         EmptyHand.network.wrapper.sendTo(new MessageSyncItems(mainHand, offHand), player);
     }
 
-    @Mod.EventBusSubscriber
-    public static class EventHandler {
+    @Mod.EventBusSubscriber(modid = EmptyHand.MOD_ID)
+    public static final class EventHandler {
+        private EventHandler() {}
+
         @SubscribeEvent
         public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
             if (event.player instanceof EntityPlayerMP) {
                 EntityPlayerMP player = (EntityPlayerMP) event.player;
                 syncDataWithClient(player);
-                sendTutorialMessage(player);
+                if (Config.showTutorial) {
+                    sendTutorialMessage(player);
+                }
             }
         }
     }
