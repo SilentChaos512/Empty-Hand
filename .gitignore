@@ -2,7 +2,6 @@
 bin
 *.launch
 .settings
-.settings/*
 .metadata
 .classpath
 .project
@@ -21,18 +20,6 @@ build
 # other
 eclipse
 run
-classes
 
-/README.txt
-/forge-*-changelog.txt
-
-secret.json
-libs/*
-!/libs/README.txt
-curse_logo.png
-image_test/
-
-.DS_Store
-
-version.properties
-*.png~
+# Files from Forge MDK
+forge*changelog.txt

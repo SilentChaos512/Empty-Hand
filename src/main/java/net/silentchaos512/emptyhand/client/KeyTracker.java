@@ -1,37 +1,36 @@
+/*
+ * EmptyHand -- EmptyHand
+ * Copyright (C) 2022 Skyler James
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation version 3
+ * of the License.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package net.silentchaos512.emptyhand.client;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.client.settings.KeyBinding;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.KeyMapping;
+import net.minecraftforge.client.ClientRegistry;
 import net.minecraftforge.client.settings.KeyConflictContext;
-import net.minecraftforge.client.settings.KeyModifier;
-import net.minecraftforge.fml.common.gameevent.InputEvent.KeyInputEvent;
-import net.silentchaos512.emptyhand.EmptyHand;
-import net.silentchaos512.emptyhand.EmptyHandData;
-import net.silentchaos512.emptyhand.network.MessageEmptyHand;
-import net.silentchaos512.lib.client.key.KeyTrackerSL;
-import org.lwjgl.input.Keyboard;
 
-public class KeyTracker extends KeyTrackerSL {
-    public static KeyTracker instance = new KeyTracker();
+public class KeyTracker {
 
-    private KeyBinding keyEmptyHand;
+    public static final String KEY_EMPTY_HAND = "key.emptyHand";
 
-    private KeyTracker() {
-        super(EmptyHand.MOD_NAME);
-        keyEmptyHand = createBinding("Empty Hand", KeyConflictContext.IN_GAME, KeyModifier.NONE, Keyboard.KEY_GRAVE);
-    }
+    public static KeyMapping keyEmptyHand;
 
-    @Override
-    public void onKeyInput(KeyInputEvent event) {
-        if (keyEmptyHand.isPressed()) {
-            EntityPlayerSP player = Minecraft.getMinecraft().player;
-            EmptyHandData.processEmptyHandRequest(player);
-            EmptyHand.network.wrapper.sendToServer(new MessageEmptyHand(player));
-        }
-    }
-
-    public String getKeybindDisplayName() {
-        return this.keyEmptyHand.getDisplayName();
+    public static void register() {
+        keyEmptyHand = new KeyMapping(KEY_EMPTY_HAND, KeyConflictContext.IN_GAME, InputConstants.getKey("key.keyboard.grave.accent"), "key.categories.inventory");
+        ClientRegistry.registerKeyBinding(keyEmptyHand);
     }
 }
