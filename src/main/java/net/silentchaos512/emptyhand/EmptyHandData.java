@@ -18,144 +18,104 @@
 
 package net.silentchaos512.emptyhand;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumHand;
+import net.minecraft.core.NonNullList;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.PlayerEvent;
-import net.silentchaos512.emptyhand.config.Config;
-import net.silentchaos512.emptyhand.network.MessageSyncItems;
-import net.silentchaos512.emptyhand.network.MessageTutorial;
-import net.silentchaos512.lib.util.PlayerHelper;
-
-import javax.annotation.Nonnull;
+import net.minecraftforge.network.PacketDistributor;
+import net.silentchaos512.emptyhand.data.IStoredItems;
+import net.silentchaos512.emptyhand.data.StoredItemsCapability;
+import net.silentchaos512.emptyhand.network.EmptyHandNetwork;
+import net.silentchaos512.emptyhand.network.SSyncCapabilityPacket;
+import net.silentchaos512.emptyhand.network.SUpdateTutorialPacket;
 
 public final class EmptyHandData {
-    private static final String NBT_DATA = "EmptyHand_Data";
-    private static final String NBT_LOCKED_SLOT = "LockedSlot";
-    private static final String NBT_STORED_STACK_PREFIX = "StoredStack";
-    private static final String NBT_TUTORIAL_STAGE = "Tutorial";
-    private static final int TUTORIAL_STAGES = 2;
 
     private EmptyHandData() {
     }
 
-    @Nonnull
-    private static NBTTagCompound getData(EntityPlayer player) {
-        return PlayerHelper.getPersistedDataSubcompound(player, NBT_DATA);
-    }
-
-    public static int getLockedSlot(EntityPlayer player) {
-        return getData(player).getInteger(NBT_LOCKED_SLOT);
-    }
 
     /**
      * Gets the stored item for the given hand, or {@link ItemStack#EMPTY} if nothing is stored.
      */
-    public static ItemStack getStoredStack(EntityPlayer player, EnumHand hand) {
-        NBTTagCompound tags = getData(player);
-        final String key = getStoredStackKey(hand);
-
-        if (tags.hasKey(key)) return new ItemStack(tags.getCompoundTag(key));
-        else return ItemStack.EMPTY;
+    public static ItemStack getStoredStack(Player player, InteractionHand hand) {
+        final IStoredItems storedItems = player.getCapability(EmptyHand.STORED_ITEMS).orElse(StoredItemsCapability.EMPTY);
+        return storedItems.getItem(hand);
     }
 
-    public static void processEmptyHandRequest(EntityPlayer player) {
-        swapForHand(player, EnumHand.MAIN_HAND);
-        swapForHand(player, EnumHand.OFF_HAND);
+    public static void processEmptyHandRequest(Player player) {
+        swapForHand(player, InteractionHand.MAIN_HAND);
+        swapForHand(player, InteractionHand.OFF_HAND);
 
         setLockedSlot(player);
 
-        if (player instanceof EntityPlayerMP) {
-            EntityPlayerMP playerMP = (EntityPlayerMP) player;
+        if (player instanceof ServerPlayer) {
+            ServerPlayer playerMP = (ServerPlayer) player;
             syncDataWithClient(playerMP);
             incrementTutorialStage(playerMP);
-            if (Config.showTutorial) {
-                sendTutorialMessage(playerMP);
+            sendTutorialMessage(playerMP);
+        }
+    }
+
+    private static void setLockedSlot(Player player) {
+        player.getCapability(EmptyHand.STORED_ITEMS).ifPresent(c -> {
+            if (player.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {
+                int slot = player.getInventory().selected;
+                c.setLockedSlot(slot);
+            } else {
+                c.clearLockedSlot();
             }
-        }
-    }
-
-    private static void setLockedSlot(EntityPlayer player) {
-        if (player.getHeldItem(EnumHand.MAIN_HAND).isEmpty()) {
-            int slot = player.inventory.currentItem;
-            getData(player).setInteger(NBT_LOCKED_SLOT, slot);
-        } else {
-            getData(player).setInteger(NBT_LOCKED_SLOT, -1);
-        }
-    }
-
-    /**
-     * Sets the stored stacks. This is used exclusively by {@link MessageSyncItems} to sync items
-     * from server to client, mostly on log-in.
-     */
-    public static void setStoredStacks(EntityPlayer player, ItemStack mainHand, ItemStack offHand) {
-        if (player == null) return;
-        NBTTagCompound tags = getData(player);
-        tags.setTag(getStoredStackKey(EnumHand.MAIN_HAND), mainHand.writeToNBT(new NBTTagCompound()));
-        tags.setTag(getStoredStackKey(EnumHand.OFF_HAND), offHand.writeToNBT(new NBTTagCompound()));
+        });
     }
 
     /**
      * Swaps the item in the player's given hand with the item in Empty Hand's "storage slot".
      */
-    private static void swapForHand(EntityPlayer player, EnumHand hand) {
-        final String key = getStoredStackKey(hand);
-        NBTTagCompound tags = getData(player);
-        ItemStack current = player.getHeldItem(hand);
-        ItemStack previous = tags.hasKey(key) ? new ItemStack(tags.getCompoundTag(key)) : ItemStack.EMPTY;
-
-        player.setHeldItem(hand, previous);
-        NBTTagCompound itemCompound = current.writeToNBT(new NBTTagCompound());
-        tags.setTag(key, itemCompound);
-    }
-
-    private static String getStoredStackKey(EnumHand hand) {
-        return NBT_STORED_STACK_PREFIX + "_" + (hand == EnumHand.MAIN_HAND ? "Main" : "Off");
+    private static void swapForHand(Player player, InteractionHand hand) {
+        player.getCapability(EmptyHand.STORED_ITEMS).ifPresent(c -> {
+            ItemStack current = player.getItemInHand(hand);
+            ItemStack previous = c.getItem(hand);
+            player.setItemInHand(hand, previous);
+            c.setItem(hand, current);
+        });
     }
 
     /**
      * Sends a tutorial message to the player, if appropriate.
      */
-    private static void sendTutorialMessage(EntityPlayerMP player) {
-        int completedStage = getData(player).getInteger(NBT_TUTORIAL_STAGE);
-        if (completedStage >= TUTORIAL_STAGES) return;
-        int currentStage = completedStage + 1;
-        EmptyHand.network.wrapper.sendTo(new MessageTutorial(currentStage), player);
+    public static void sendTutorialMessage(ServerPlayer player) {
+        player.getCapability(EmptyHand.STORED_ITEMS).ifPresent(c -> {
+            int completedStage = c.getTutorialStage();
+            if (completedStage >= IStoredItems.TUTORIAL_STAGES) {
+                return;
+            }
+            int currentStage = completedStage + 1;
+            EmptyHandNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SUpdateTutorialPacket(currentStage));
+        });
     }
 
     /**
      * Increment the tutorial stage, which determines which message will be shown, if any.
      */
-    private static void incrementTutorialStage(EntityPlayerMP player) {
-        NBTTagCompound tags = getData(player);
-        int completedStage = tags.getInteger(NBT_TUTORIAL_STAGE);
-        if (completedStage < TUTORIAL_STAGES)
-            tags.setInteger(NBT_TUTORIAL_STAGE, completedStage + 1);
-    }
-
-    private static void syncDataWithClient(EntityPlayerMP player) {
-        ItemStack mainHand = getStoredStack(player, EnumHand.MAIN_HAND);
-        ItemStack offHand = getStoredStack(player, EnumHand.OFF_HAND);
-        EmptyHand.network.wrapper.sendTo(new MessageSyncItems(mainHand, offHand), player);
-    }
-
-    @Mod.EventBusSubscriber(modid = EmptyHand.MOD_ID)
-    public static final class EventHandler {
-        private EventHandler() {}
-
-        @SubscribeEvent
-        public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-            if (event.player instanceof EntityPlayerMP) {
-                EntityPlayerMP player = (EntityPlayerMP) event.player;
-                syncDataWithClient(player);
-                if (Config.showTutorial) {
-                    sendTutorialMessage(player);
-                }
+    private static void incrementTutorialStage(ServerPlayer player) {
+        player.getCapability(EmptyHand.STORED_ITEMS).ifPresent(c -> {
+            int completedStage = c.getTutorialStage();
+            if (completedStage < IStoredItems.TUTORIAL_STAGES) {
+                c.setTutorialStage(completedStage + 1);
             }
-        }
+            // send capability to client player
+            EmptyHandNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SSyncCapabilityPacket(c));
+        });
+    }
+
+    public static void syncDataWithClient(ServerPlayer player) {
+        player.getCapability(EmptyHand.STORED_ITEMS).ifPresent(c -> {
+            // send capability to client player
+            EmptyHandNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SSyncCapabilityPacket(c));
+        });
     }
 }

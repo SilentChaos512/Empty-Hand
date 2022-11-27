@@ -1,0 +1,6 @@
+{
+  "misc.emptyhand.tutorial.prefix": "[Empty Hand]",
+  "misc.emptyhand.tutorial1": "Press <%1$s> to empty both hands",
+  "misc.emptyhand.tutorial2": "Now press <%1$s> again to get your items back",
+  "key.emptyHand": "Empty Hand"
+}

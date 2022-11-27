@@ -1,0 +1,13 @@
+modLoader="javafml"
+loaderVersion="[40,)"
+license="GNU LGPLv3"
+issueTrackerURL="https://github.com/SilentChaos512/Empty-Hand/issues"
+
+[[mods]]
+    modId="emptyhand"
+    version="18.2.0.0"
+    displayName="Empty Hand"
+	displayURL="https://minecraft.curseforge.com/projects/empty-hand"
+    authors="SilentChaos512"
+	credits="Updated by skyjay1"
+    description='''Free up your hands with the press of a key!'''
