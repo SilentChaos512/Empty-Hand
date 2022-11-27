@@ -1,11 +1,11 @@
 modLoader="javafml"
 loaderVersion="[40,)"
-license="GNU LGPLv3"
+license="MIT"
 issueTrackerURL="https://github.com/SilentChaos512/Empty-Hand/issues"
 
 [[mods]]
     modId="emptyhand"
-    version="18.2.0.0"
+    version="1.0.0"
     displayName="Empty Hand"
 	displayURL="https://minecraft.curseforge.com/projects/empty-hand"
     authors="SilentChaos512"

@@ -1,3 +1,6 @@
+## [1.0.0]
+- Updated to Minecraft 1.18.2 by skyjay1 [#3]
+
 ## [0.1.2]
 ### Added
 - Config to disable tutorial messages (#2)
